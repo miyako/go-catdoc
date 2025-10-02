@@ -56,8 +56,8 @@ int main(int argc, char **argv) {
   get_locale_charset();
 #endif
     
-    char *env_CATDOC_SRC_CHARSET = getenv("env_CATDOC_SRC_CHARSET");
-    char *env_CATDOC_DST_CHARSET = getenv("env_CATDOC_DST_CHARSET");
+    char *env_CATDOC_SRC_CHARSET = getenv("CATDOC_SRC_CHARSET");
+    char *env_CATDOC_DST_CHARSET = getenv("CATDOC_DST_CHARSET");
     source_csname = env_CATDOC_SRC_CHARSET;
     dest_csname   = env_CATDOC_DST_CHARSET;
     forced_charset = 1;
