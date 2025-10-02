@@ -1,6 +1,6 @@
 module github.com/semvis123/go-catdoc
 
-replace github.com/semvis123/go-catdoc => github.com/miyako/go-catdoc
+replace github.com/semvis123/go-catdoc => github.com/miyako/go-catdoc v0.0.4
 
 go 1.20
 
