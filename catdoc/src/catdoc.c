@@ -55,16 +55,16 @@ int main(int argc, char **argv) {
 #ifdef HAVE_LANGINFO
   get_locale_charset();
 #endif
+    
+    char *env_CATDOC_SRC_CHARSET = getenv("env_CATDOC_SRC_CHARSET");
+    char *env_CATDOC_DST_CHARSET = getenv("env_CATDOC_DST_CHARSET");
+    source_csname = env_CATDOC_SRC_CHARSET;
+    dest_csname   = env_CATDOC_DST_CHARSET;
+    forced_charset = 1;
+    
   metadata metadata_type = none;
-  while ((c = getopt(argc, argv, "Vls:d:f:taubxv8wALTSKCUm:")) != -1) {
+  while ((c = getopt(argc, argv, "Vlf:taubxv8wALTSKCUm:")) != -1) {
     switch (c) {
-    case 's':
-      check_charset(&source_csname, optarg);
-      forced_charset = 1;
-      break;
-    case 'd':
-      check_charset(&dest_csname, optarg);
-      break;
     case 'f':
       format_name = strdup(optarg);
       break;
