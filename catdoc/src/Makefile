@@ -96,8 +96,8 @@ EMSDK_COMMIT=ef2a8e929d5337755e9b1d1e1d4ad859dc694eee
 EMSCRIPTEN_BRANCH=implement-more-syscalls-for-standalone
 EMSCRIPTEN_FORK=https://github.com/jerbob92/emscripten
 
-catdoc-wasm: emsdk.uptodate
-	$(EMSDK_DIR)/emcc -o ../../catdoc.wasm \
+catdoc-wasm: 
+	 ~/emsdk/upstream/emscripten/emcc -o ../../catdoc.wasm \
 		catdoc.c reader.c writer.c \
 		analyze.c rtfread.c charsets.c \
 		substmap.c fileutil.c confutil.c \
@@ -107,7 +107,7 @@ catdoc-wasm: emsdk.uptodate
 		-DCHARSETPATH=\"charsets\" \
 		-sEXPORTED_FUNCTIONS=_get_text,_get_author,_get_last_author,_get_version,_get_title,_get_subject,_get_keywords,_get_comments,_get_annotation_authors\
 		-sSTANDALONE_WASM -sWARN_ON_UNDEFINED_SYMBOLS=0 \
-		--no-entry -sFILESYSTEM=1 --embed-file charsets -sALLOW_MEMORY_GROWTH -sMAXIMUM_MEMORY=1GB
+		--no-entry -sFILESYSTEM=1 -sALLOW_MEMORY_GROWTH -sMAXIMUM_MEMORY=1GB
 
 xls2csv: $(OBJXLS)
 	$(CC) -o xls2csv $(OBJXLS) -lm $(LDFLAGS)
