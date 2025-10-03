@@ -106,7 +106,7 @@ catdoc-wasm:
 		-DCATDOC_VERSION=\"0.95\" \
 		-DCHARSETPATH=\"charsets\" \
 		-sEXPORTED_FUNCTIONS=_get_text,_get_author,_get_last_author,_get_version,_get_title,_get_subject,_get_keywords,_get_comments,_get_annotation_authors\
-		-sSTANDALONE_WASM -sWARN_ON_UNDEFINED_SYMBOLS=0 \
+		-sSTANDALONE_WASM=1 -sWARN_ON_UNDEFINED_SYMBOLS=0 \
 		--no-entry -sNO_FILESYSTEM=1 -sALLOW_MEMORY_GROWTH -sMAXIMUM_MEMORY=1GB
 
 xls2csv: $(OBJXLS)
