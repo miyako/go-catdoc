@@ -47,7 +47,7 @@ func getWASMModuleWithFS(file fs.FS, stdout, stderr io.Writer) (api.Module, erro
 		WithFSConfig(
 			wazero.NewFSConfig().
 				WithFSMount(file, "/input_file/").
-				WithFSMount(charsets, "/")).
+				WithFSMount(charsets, "/charsets/")).
 		WithStdout(stdout).
 		WithStderr(stderr))
 
