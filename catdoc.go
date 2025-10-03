@@ -66,7 +66,19 @@ func getCompiledWASMModule() (wazero.CompiledModule, wazero.Runtime, error) {
 
 		r = wazero.NewRuntimeWithConfig(ctx, runtimeConfig)
 		wasi_snapshot_preview1.MustInstantiate(ctx, r)
-
+		
+		_, err := r.NewHostModuleBuilder("env").
+			NewFunctionBuilder().
+			WithFunc(func(dirfd, pathname, mode, flags uint32) int32 {
+				// Always return 0 = success (file accessible)
+				return 0
+			}).
+			Export("__syscall_faccessat").
+			Instantiate(ctx)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to stub __syscall_faccessat: %w", err)
+		}
+		
 		if compiledModule == nil {
 			module, err := r.CompileModule(ctx, binary)
 			compiledModule = module
