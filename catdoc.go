@@ -3,7 +3,6 @@ package gocatdoc
 import (
 	"bytes"
 	"context"
-	"embed"
 	"fmt"
 	"io"
 	"io/fs"
