@@ -21,9 +21,6 @@ import (
 //go:embed catdoc.wasm
 var binary []byte
 
-//go:embed charsets/*
-var charsets embed.FS
-
 var (
 	runtimeConfig   wazero.RuntimeConfig
 	r               wazero.Runtime
@@ -149,8 +146,7 @@ func getWASMModuleWithFS(file fs.FS, stdout, stderr io.Writer) (api.Module, erro
 		WithEnv("CATDOC_DST_CHARSET", dstCharset).
 		WithFSConfig(
 			wazero.NewFSConfig().
-				WithFSMount(file, "/input_file").
-				WithFSMount(charsets, "/charsets"),
+				WithFSMount(file, "/input_file"),
 		).
 		WithStdout(stdout).
 		WithStderr(stderr)
