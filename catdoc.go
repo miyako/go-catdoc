@@ -56,6 +56,7 @@ func getWASMModuleWithFS(file fs.FS, stdout, stderr io.Writer) (api.Module, erro
 func getCompiledWASMModule() (wazero.CompiledModule, wazero.Runtime, error) {
 	initLock.Lock()
 	defer initLock.Unlock()
+
 	if r == nil {
 		ctx = context.Background()
 
@@ -65,32 +66,34 @@ func getCompiledWASMModule() (wazero.CompiledModule, wazero.Runtime, error) {
 		}
 
 		r = wazero.NewRuntimeWithConfig(ctx, runtimeConfig)
+
+		// 1. Instantiate WASI
 		wasi_snapshot_preview1.MustInstantiate(ctx, r)
-		
-		_, err := r.NewHostModuleBuilder("env").
-			NewFunctionBuilder().
-			WithFunc(func(dirfd, pathname, mode, flags uint32) int32 {
-				// Always return 0 = success (file accessible)
-				return 0
-			}).
-			Export("__syscall_faccessat").
-			Instantiate(ctx)
-		if err != nil {
-			return nil, nil, fmt.Errorf("failed to stub __syscall_faccessat: %w", err)
+
+		// 2. Create Emscripten builder and stub __syscall_faccessat
+		emscriptenBuilder := emscripten.NewBuilder(r)
+
+		// Add the stub function
+		emscriptenBuilder.NewFunction("__syscall_faccessat", func(ctx context.Context, m api.Module, stack []uint64) {
+			// Just return 0 to say "file is accessible"
+			stack[0] = 0
+		})
+
+		// 3. Instantiate the Emscripten environment
+		if _, err := emscriptenBuilder.Instantiate(ctx); err != nil {
+			return nil, nil, fmt.Errorf("failed to instantiate emscripten module: %w", err)
 		}
-		
+
+		// 4. Compile the module if needed
 		if compiledModule == nil {
 			module, err := r.CompileModule(ctx, binary)
-			compiledModule = module
 			if err != nil {
 				return nil, nil, fmt.Errorf("failed to compile module: %w", err)
 			}
-		}
-		_, err = emscripten.InstantiateForModule(ctx, r, compiledModule)
-		if err != nil {
-			return nil, nil, fmt.Errorf("failed to instantiate module (emscripten): %w", err)
+			compiledModule = module
 		}
 	}
+
 	return compiledModule, r, nil
 }
 
