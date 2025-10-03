@@ -112,10 +112,15 @@ func getWASMModuleWithFS(file fs.FS, stdout, stderr io.Writer) (api.Module, erro
 	// 👇 Match what your C code expects (e.g., -DCHARSETPATH="charsets")
 	return run.InstantiateModule(ctx, cMod, wazero.NewModuleConfig().
 		WithStartFunctions("_initialize").
-		WithEnv("CATDOC_SRC_CHARSET", srcCharset).
-		WithEnv("CATDOC_DST_CHARSET", dstCharset).
+		WithEnv("CATDOC_SRC_CHARSET", s).
+		WithEnv("CATDOC_DST_CHARSET", d).
+		WithFSConfig(
+			wazero.NewFSConfig().
+				WithFSMount(fileFS, "/input_file/"),
+				// You can omit mounting charsets if they are embedded inside wasm.
+		).
 		WithStdout(stdout).
-		WithStderr(stderr),
+		WithStderr(stderr)
 	)
 }
 
