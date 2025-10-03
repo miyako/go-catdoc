@@ -88,6 +88,12 @@ func getCompiledWASMModule() (wazero.CompiledModule, wazero.Runtime, error) {
 			}).
 			Export("__syscall_faccessat")
 
+		envBuilder.NewFunctionBuilder().
+		WithFunc(func(fd, direntPtr, count uint32) int32 {
+			return 0
+		}).
+		Export("__syscall_getdents64")
+
 		// ✅ Add required Emscripten functions for this WASM module
 		exporter, err := emscripten.NewFunctionExporterForModule(compiledModule)
 		if err != nil {
