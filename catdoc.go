@@ -128,68 +128,35 @@ func getCompiledWASMModule() (wazero.CompiledModule, wazero.Runtime, error) {
 	initLock.Lock()
 	defer initLock.Unlock()
 
-	if r != nil {
-		return compiledModule, r, nil
-	}
+	if r == nil {
+		ctx = context.Background()
 
-	ctx = context.Background()
+		if runtimeConfig == nil {
+			cache := wazero.NewCompilationCache()
+			runtimeConfig = wazero.NewRuntimeConfig().WithCompilationCache(cache)
+		}
 
-	if runtimeConfig == nil {
-		cache := wazero.NewCompilationCache()
-		runtimeConfig = wazero.NewRuntimeConfig().WithCompilationCache(cache)
-	}
+		r = wazero.NewRuntimeWithConfig(ctx, runtimeConfig)
 
-	r = wazero.NewRuntimeWithConfig(ctx, runtimeConfig)
+		// 1. Instantiate WASI (always needed for Emscripten modules)
+		wasi_snapshot_preview1.MustInstantiate(ctx, r)
 
-	// ✅ WASI is typically required by Emscripten
-	wasi_snapshot_preview1.MustInstantiate(ctx, r)
+		// 2. Instantiate Emscripten imports (IMPORTANT to provide all Emscripten environment functions including _emscripten_fs_load_embedded_files)
+		_, err := emscripten.Instantiate(ctx, r)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to instantiate emscripten imports: %w", err)
+		}
 
-	// ✅ Compile module
-	mod, err := r.CompileModule(ctx, binary)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to compile WASM module: %w", err)
-	}
-	compiledModule = mod
+		// 3. Compile the WASM module after imports are ready
+		module, err := r.CompileModule(ctx, binary)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to compile WASM module: %w", err)
+		}
+		compiledModule = module
 
-	// ✅ Emscripten requires "env" imports; we build that manually
-	envBuilder := r.NewHostModuleBuilder("env")
+		// No need to manually build "env" or stub syscalls here, emscripten.Instantiate handles that
 
-	// 🔁 Step 1: Import all functions required by the compiled module
-	exporter, err := emscripten.NewFunctionExporterForModule(compiledModule)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to get emscripten exporter: %w", err)
-	}
-	exporter.ExportFunctions(envBuilder)
-
-	// 🔁 Step 2: Override or stub missing syscalls
-	envBuilder.NewFunctionBuilder().
-		WithFunc(func(dirfd, pathname, mode, flags uint32) int32 {
-			return 0
-		}).
-		Export("__syscall_faccessat")
-
-	envBuilder.NewFunctionBuilder().
-		WithFunc(func(fd, direntPtr, count uint32) int32 {
-			return 0
-		}).
-		Export("__syscall_getdents64")
-
-	envBuilder.NewFunctionBuilder().
-		WithFunc(func(dirfd, pathname, flags uint32) int32 {
-			return 0
-		}).
-		Export("__syscall_unlinkat")
-	/*	
-	envBuilder.NewFunctionBuilder().
-	WithFunc(func(x uint32) {
-		// no-op; Emscripten expects one int32 parameter
-	}).
-	Export("_emscripten_fs_load_embedded_files")	
-	*/
-	
-	// 🔁 Step 3: Instantiate the "env" module with everything above
-	if _, err := envBuilder.Instantiate(ctx); err != nil {
-		return nil, nil, fmt.Errorf("failed to instantiate env module: %w", err)
+		// Now ready to instantiate actual guest module using this runtime
 	}
 
 	return compiledModule, r, nil
