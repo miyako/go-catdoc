@@ -179,13 +179,14 @@ func getCompiledWASMModule() (wazero.CompiledModule, wazero.Runtime, error) {
 			return 0
 		}).
 		Export("__syscall_unlinkat")
-		
+	/*	
 	envBuilder.NewFunctionBuilder().
 	WithFunc(func(x uint32) {
 		// no-op; Emscripten expects one int32 parameter
 	}).
 	Export("_emscripten_fs_load_embedded_files")	
-
+	*/
+	
 	// 🔁 Step 3: Instantiate the "env" module with everything above
 	if _, err := envBuilder.Instantiate(ctx); err != nil {
 		return nil, nil, fmt.Errorf("failed to instantiate env module: %w", err)
