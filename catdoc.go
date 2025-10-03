@@ -86,7 +86,7 @@ func getCompiledWASMModule() (wazero.CompiledModule, wazero.Runtime, error) {
 				return nil, nil, fmt.Errorf("failed to compile module: %w", err)
 			}
 		}
-		_, err := emscripten.InstantiateForModule(ctx, r, compiledModule)
+		_, err = emscripten.InstantiateForModule(ctx, r, compiledModule)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to instantiate module (emscripten): %w", err)
 		}
