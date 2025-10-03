@@ -114,11 +114,6 @@ func getWASMModuleWithFS(file fs.FS, stdout, stderr io.Writer) (api.Module, erro
 		WithStartFunctions("_initialize").
 		WithEnv("CATDOC_SRC_CHARSET", srcCharset).
 		WithEnv("CATDOC_DST_CHARSET", dstCharset).
-		WithEnv("CHARSETPATH", "/charsets").
-		WithFSConfig(
-			wazero.NewFSConfig().
-				WithFSMount(file, "/input_file"),
-		).
 		WithStdout(stdout).
 		WithStderr(stderr),
 	)
