@@ -1,3 +1,7 @@
+package gocatdoc
+
+import ( "bytes" "context" "embed" "fmt" "io" "io/fs" "os" "strings" "sync" "github.com/tetratelabs/wazero" "github.com/tetratelabs/wazero/api" "github.com/tetratelabs/wazero/imports/emscripten" "github.com/tetratelabs/wazero/imports/wasi_snapshot_preview1" "github.com/tetratelabs/wazero/sys" ) //go:embed catdoc.wasm var binary []byte //go:embed charsets/* var charsets embed.FS var ( runtimeConfig wazero.RuntimeConfig r wazero.Runtime compiledModule wazero.CompiledModule ctx context.Context initLock = &sync.Mutex{} )
+
 func getCompiledWASMModule() (wazero.CompiledModule, wazero.Runtime, error) {
 	initLock.Lock()
 	defer initLock.Unlock()
