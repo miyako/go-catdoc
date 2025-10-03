@@ -8,6 +8,7 @@ import (
 	"io/fs"
 	"strings"
 	"sync"
+	"os"
 
 	"embed"
 
@@ -35,13 +36,20 @@ func getWASMModuleWithFS(file fs.FS, stdout, stderr io.Writer) (api.Module, erro
 	if err != nil {
 		return nil, err
 	}
+	
+	s := os.Getenv("CATDOC_SRC_CHARSET")
+	d := os.Getenv("CATDOC_DST_CHARSET")
+	
 	mod, err := run.InstantiateModule(ctx, cMod, wazero.NewModuleConfig().
 		WithStartFunctions("_initialize").
+		WithEnv("CATDOC_SRC_CHARSET", s).
+		WithEnv("CATDOC_DST_CHARSET", d).
 		WithFSConfig(
 			wazero.NewFSConfig().
 				WithFSMount(file, "/input_file/").
 				WithFSMount(charsets, "/")).
 		WithStdout(stdout).WithStderr(stderr))
+		
 	return mod, err
 }
 
