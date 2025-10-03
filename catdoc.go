@@ -117,8 +117,8 @@ func getWASMModuleWithFS(file fs.FS, stdout, stderr io.Writer) (api.Module, erro
 		WithEnv("CHARSETPATH", "/charsets").
 		WithFSConfig(
 			wazero.NewFSConfig().
-				WithFSMount(file, "/input_file").
-				WithFSMount(charsets, "/charsets"),
+				WithFSMount(file, "/input_file")
+		//		.WithFSMount(charsets, "/charsets")
 		).
 		WithStdout(stdout).
 		WithStderr(stderr),
@@ -180,6 +180,12 @@ func getCompiledWASMModule() (wazero.CompiledModule, wazero.Runtime, error) {
 			return 0
 		}).
 		Export("__syscall_unlinkat")
+		
+	envBuilder.NewFunctionBuilder().
+		WithFunc(func() {
+			// No-op stub
+		}).
+		Export("_emscripten_fs_load_embedded_files")	
 
 	// 🔁 Step 3: Instantiate the "env" module with everything above
 	if _, err := envBuilder.Instantiate(ctx); err != nil {
