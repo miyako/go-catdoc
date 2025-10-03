@@ -36,10 +36,10 @@ func getWASMModuleWithFS(file fs.FS, stdout, stderr io.Writer) (api.Module, erro
 	if err != nil {
 		return nil, err
 	}
-	
+
 	s := os.Getenv("CATDOC_SRC_CHARSET")
 	d := os.Getenv("CATDOC_DST_CHARSET")
-	
+
 	mod, err := run.InstantiateModule(ctx, cMod, wazero.NewModuleConfig().
 		WithStartFunctions("_initialize").
 		WithEnv("CATDOC_SRC_CHARSET", s).
@@ -48,8 +48,9 @@ func getWASMModuleWithFS(file fs.FS, stdout, stderr io.Writer) (api.Module, erro
 			wazero.NewFSConfig().
 				WithFSMount(file, "/input_file/").
 				WithFSMount(charsets, "/")).
-		WithStdout(stdout).WithStderr(stderr))
-		
+		WithStdout(stdout).
+		WithStderr(stderr))
+
 	return mod, err
 }
 
@@ -67,42 +68,42 @@ func getCompiledWASMModule() (wazero.CompiledModule, wazero.Runtime, error) {
 
 		r = wazero.NewRuntimeWithConfig(ctx, runtimeConfig)
 
-		// 1. Instantiate WASI
+		// 1. Instantiate WASI (always needed for Emscripten modules)
 		wasi_snapshot_preview1.MustInstantiate(ctx, r)
 
-		// 2. Create Emscripten builder and stub __syscall_faccessat
-		emscriptenBuilder := emscripten.NewBuilder(r)
+		// 2. Compile the WASM module first (needed to inspect imports)
+		module, err := r.CompileModule(ctx, binary)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to compile WASM module: %w", err)
+		}
+		compiledModule = module
 
-		// Add the stub function
-		emscriptenBuilder.NewFunction("__syscall_faccessat", func(ctx context.Context, m api.Module, stack []uint64) {
-			// Just return 0 to say "file is accessible"
-			stack[0] = 0
-		})
+		// 3. Build "env" module with Emscripten imports + syscall stubs
+		envBuilder := r.NewHostModuleBuilder("env")
 
-		// 3. Instantiate the Emscripten environment
-		if _, err := emscriptenBuilder.Instantiate(ctx); err != nil {
-			return nil, nil, fmt.Errorf("failed to instantiate emscripten module: %w", err)
+		// ✅ Stub __syscall_faccessat to always succeed
+		envBuilder.NewFunctionBuilder().
+			WithFunc(func(dirfd, pathname, mode, flags uint32) int32 {
+				return 0 // always accessible
+			}).
+			Export("__syscall_faccessat")
+
+		// ✅ Add required Emscripten functions for this WASM module
+		exporter, err := emscripten.NewFunctionExporterForModule(compiledModule)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to get Emscripten exporter: %w", err)
+		}
+		exporter.ExportFunctions(envBuilder)
+
+		// 4. Instantiate the env module
+		if _, err := envBuilder.Instantiate(ctx); err != nil {
+			return nil, nil, fmt.Errorf("failed to instantiate env module: %w", err)
 		}
 
-		// 4. Compile the module if needed
-		if compiledModule == nil {
-			module, err := r.CompileModule(ctx, binary)
-			if err != nil {
-				return nil, nil, fmt.Errorf("failed to compile module: %w", err)
-			}
-			compiledModule = module
-		}
+		// Now ready to instantiate actual guest module using this runtime
 	}
 
 	return compiledModule, r, nil
-}
-
-func GetAuthorFromFile(file io.ReadSeeker) (string, error) {
-	return callWASMFuncWithFile("get_author", file)
-}
-
-func GetLastAuthorFromFile(file io.ReadSeeker) (string, error) {
-	return callWASMFuncWithFile("get_last_author", file)
 }
 
 func GetTextFromFile(file io.ReadSeeker) (string, error) {
